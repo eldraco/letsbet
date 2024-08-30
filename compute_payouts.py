@@ -1,5 +1,8 @@
 import yaml
 import csv
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 
 def load_config():
     with open('config.yaml', 'r') as file:
@@ -80,6 +83,8 @@ def settle_debts(bets, payouts):
     return payments
 
 if __name__ == "__main__":
+    console = Console()
+
     config = load_config()
     events = config['events']
 
@@ -95,22 +100,33 @@ if __name__ == "__main__":
     # Calculate payouts
     payouts = calculate_payouts(bets, actual_results)
 
-    # Display the results on a single line per participant
+    # Create a pretty table for results
+    table = Table(title="Betting Results", show_header=True, header_style="bold magenta")
+    table.add_column("Participant", justify="left", style="cyan", no_wrap=True)
+    table.add_column("Original Bet", justify="right", style="green")
+    table.add_column("Net Gain/Loss", justify="right", style="red")
+
+    # Populate the table with participant data
     for bet in bets:
         name = bet['name']
         original_bet = bet['total_bet']
         final_payout = payouts.get(name, 0)
         net_gain_loss = final_payout - original_bet
-        
-        # Format the output as a single line
+
         if net_gain_loss >= 0:
-            print(f"{name} originally bet: ${original_bet:.2f}, should receive: +${net_gain_loss:.2f}")
+            net_gain_loss_str = f"+${net_gain_loss:.2f}"
         else:
-            print(f"{name} originally bet: ${original_bet:.2f}, should pay: -${abs(net_gain_loss):.2f}")
-    
+            net_gain_loss_str = f"-${abs(net_gain_loss):.2f}"
+
+        table.add_row(name, f"${original_bet:.2f}", net_gain_loss_str)
+
+    console.print(table)
+
     # Settle debts
     payments = settle_debts(bets, payouts)
-    print("\nSettlement Instructions:")
+
+    # Print settlement instructions in a styled format
+    console.print("\n[bold underline]Settlement Instructions:[/bold underline]", style="blue")
     for payment in payments:
-        print(payment)
+        console.print(payment, style="yellow")
 
