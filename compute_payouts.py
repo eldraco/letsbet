@@ -24,35 +24,29 @@ def load_bets(filename='bets.tsv'):
 
 def calculate_payouts(bets, actual_results):
     total_pool = sum(bet['total_bet'] for bet in bets)
-    weighted_scores = []
-    exact_matches = []
+    inverse_differences = []
     
+    # Calculate the inverse of the total difference for each bet
     for bet in bets:
         total_difference = sum(abs(bet[event] - actual_results[event]) for event in actual_results)
-        
         if total_difference == 0:
-            exact_matches.append((bet['name'], bet['total_bet']))
+            inverse_difference = float('inf')  # Perfect prediction should get the whole pot
         else:
-            weighted_score = total_difference / bet['total_bet']
-            weighted_scores.append((bet['name'], weighted_score))
+            inverse_difference = 1 / total_difference
+        inverse_differences.append((bet['name'], inverse_difference, bet['total_bet']))
 
+    # Normalize the inverse differences to find out the share of the total pot
+    total_inverse = sum(inverse for _, inverse, _ in inverse_differences if inverse != float('inf'))
     payouts = {}
+    
+    for name, inverse_difference, bet_amount in inverse_differences:
+        if inverse_difference == float('inf'):
+            payout = total_pool  # If someone had a perfect prediction, they take the whole pot
+        else:
+            payout = (inverse_difference / total_inverse) * total_pool
+        payouts[name] = payout
 
-    if exact_matches:
-        # If there are exact matches, they split the total pool
-        exact_total_bet = sum(bet for _, bet in exact_matches)
-        for name, bet in exact_matches:
-            payouts[name] = (bet / exact_total_bet) * total_pool
-    else:
-        # If no exact matches, proceed with weighted score calculations
-        total_inverse_weighted_score = sum(1 / score for _, score in weighted_scores)
-        
-        for name, score in weighted_scores:
-            inverse_score = 1 / score
-            payout = (inverse_score / total_inverse_weighted_score) * total_pool
-            payouts[name] = payout
-
-    return payouts
+    return payouts, total_pool
 
 if __name__ == "__main__":
     config = load_config()
@@ -68,9 +62,23 @@ if __name__ == "__main__":
         actual_results[event_name] = int(input(f"Enter the actual result for {event_name}: "))
 
     # Calculate payouts
-    payouts = calculate_payouts(bets, actual_results)
+    payouts, total_pool = calculate_payouts(bets, actual_results)
 
-    # Display the results
-    for name, payout in payouts.items():
-        print(f"{name} should receive: ${payout:.2f}")
+    # Display the results as net gain or loss
+    for bet in bets:
+        name = bet['name']
+        original_bet = bet['total_bet']
+        final_payout = payouts.get(name, 0)
+        net_gain_loss = final_payout - original_bet
+        if net_gain_loss >= 0:
+            print(f"{name} should receive: +${net_gain_loss:.2f}")
+        else:
+            print(f"{name} should pay: -${abs(net_gain_loss):.2f}")
+
+    # Verify that total payouts match the total pool
+    total_payout = sum(payouts.values())
+    if round(total_payout, 2) != round(total_pool, 2):
+        print("Error: Total payout does not match the total pool!")
+    else:
+        print("Total payouts correctly match the total pool.")
 
