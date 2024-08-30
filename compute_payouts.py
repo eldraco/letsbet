@@ -26,7 +26,6 @@ def calculate_payouts(bets, actual_results):
     total_pool = sum(bet['total_bet'] for bet in bets)
     inverse_differences = []
     
-    # Calculate the inverse of the total difference for each bet
     for bet in bets:
         total_difference = sum(abs(bet[event] - actual_results[event]) for event in actual_results)
         if total_difference == 0:
@@ -35,7 +34,6 @@ def calculate_payouts(bets, actual_results):
             inverse_difference = 1 / total_difference
         inverse_differences.append((bet['name'], inverse_difference, bet['total_bet']))
 
-    # Normalize the inverse differences to find out the share of the total pot
     total_inverse = sum(inverse for _, inverse, _ in inverse_differences if inverse != float('inf'))
     payouts = {}
     
@@ -46,7 +44,7 @@ def calculate_payouts(bets, actual_results):
             payout = (inverse_difference / total_inverse) * total_pool
         payouts[name] = payout
 
-    return payouts, total_pool
+    return payouts
 
 if __name__ == "__main__":
     config = load_config()
@@ -62,23 +60,18 @@ if __name__ == "__main__":
         actual_results[event_name] = int(input(f"Enter the actual result for {event_name}: "))
 
     # Calculate payouts
-    payouts, total_pool = calculate_payouts(bets, actual_results)
+    payouts = calculate_payouts(bets, actual_results)
 
-    # Display the results as net gain or loss
+    # Display the results on a single line per participant
     for bet in bets:
         name = bet['name']
         original_bet = bet['total_bet']
         final_payout = payouts.get(name, 0)
         net_gain_loss = final_payout - original_bet
+        
+        # Format the output as a single line
         if net_gain_loss >= 0:
-            print(f"{name} should receive: +${net_gain_loss:.2f}")
+            print(f"{name} originally bet: ${original_bet:.2f}, should receive: +${net_gain_loss:.2f}")
         else:
-            print(f"{name} should pay: -${abs(net_gain_loss):.2f}")
-
-    # Verify that total payouts match the total pool
-    total_payout = sum(payouts.values())
-    if round(total_payout, 2) != round(total_pool, 2):
-        print("Error: Total payout does not match the total pool!")
-    else:
-        print("Total payouts correctly match the total pool.")
+            print(f"{name} originally bet: ${original_bet:.2f}, should pay: -${abs(net_gain_loss):.2f}")
 
