@@ -46,6 +46,39 @@ def calculate_payouts(bets, actual_results):
 
     return payouts
 
+def settle_debts(bets, payouts):
+    creditors = []
+    debtors = []
+
+    # Separate creditors and debtors
+    for bet in bets:
+        name = bet['name']
+        original_bet = bet['total_bet']
+        final_payout = payouts.get(name, 0)
+        net_gain_loss = final_payout - original_bet
+
+        if net_gain_loss > 0:
+            creditors.append((name, net_gain_loss))
+        elif net_gain_loss < 0:
+            debtors.append((name, -net_gain_loss))
+
+    # Match payments to cancel out debts
+    payments = []
+    while creditors and debtors:
+        creditor_name, creditor_amount = creditors.pop(0)
+        debtor_name, debtor_amount = debtors.pop(0)
+
+        if creditor_amount > debtor_amount:
+            payments.append(f"{debtor_name} should pay {creditor_name} ${debtor_amount:.2f}")
+            creditors.insert(0, (creditor_name, creditor_amount - debtor_amount))
+        elif debtor_amount > creditor_amount:
+            payments.append(f"{debtor_name} should pay {creditor_name} ${creditor_amount:.2f}")
+            debtors.insert(0, (debtor_name, debtor_amount - creditor_amount))
+        else:
+            payments.append(f"{debtor_name} should pay {creditor_name} ${debtor_amount:.2f}")
+
+    return payments
+
 if __name__ == "__main__":
     config = load_config()
     events = config['events']
@@ -74,4 +107,10 @@ if __name__ == "__main__":
             print(f"{name} originally bet: ${original_bet:.2f}, should receive: +${net_gain_loss:.2f}")
         else:
             print(f"{name} originally bet: ${original_bet:.2f}, should pay: -${abs(net_gain_loss):.2f}")
+    
+    # Settle debts
+    payments = settle_debts(bets, payouts)
+    print("\nSettlement Instructions:")
+    for payment in payments:
+        print(payment)
 
