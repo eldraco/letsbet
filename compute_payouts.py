@@ -2,7 +2,6 @@ import yaml
 import csv
 from rich.console import Console
 from rich.table import Table
-from rich.text import Text
 
 def load_config():
     with open('config.yaml', 'r') as file:
@@ -27,24 +26,23 @@ def load_bets(filename='bets.tsv'):
 
 def calculate_payouts(bets, actual_results):
     total_pool = sum(bet['total_bet'] for bet in bets)
-    inverse_differences = []
+    weighted_scores = []
     
+    # Calculate weighted score for each participant
     for bet in bets:
         total_difference = sum(abs(bet[event] - actual_results[event]) for event in actual_results)
-        if total_difference == 0:
-            inverse_difference = float('inf')  # Perfect prediction should get the whole pot
-        else:
-            inverse_difference = 1 / total_difference
-        inverse_differences.append((bet['name'], inverse_difference, bet['total_bet']))
+        weighted_score = total_difference / bet['total_bet']  # Lower score is better
+        weighted_scores.append((bet['name'], weighted_score, bet['total_bet']))
 
-    total_inverse = sum(inverse for _, inverse, _ in inverse_differences if inverse != float('inf'))
+    # Calculate the inverse weighted scores
+    inverse_scores = [(name, 1 / score) for name, score, bet_amount in weighted_scores]
+    total_inverse_score = sum(inverse_score for _, inverse_score in inverse_scores)
+    
     payouts = {}
     
-    for name, inverse_difference, bet_amount in inverse_differences:
-        if inverse_difference == float('inf'):
-            payout = total_pool  # If someone had a perfect prediction, they take the whole pot
-        else:
-            payout = (inverse_difference / total_inverse) * total_pool
+    # Calculate each participant's payout based on their inverse score
+    for name, inverse_score in inverse_scores:
+        payout = (inverse_score / total_inverse_score) * total_pool
         payouts[name] = payout
 
     return payouts
