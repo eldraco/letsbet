@@ -1,21 +1,24 @@
-# letsbet
-A program to manage bets of multiple events between multiple people
+# LetsBet
+LetsBet is a program for people to bet on the outcome of different events and bet on their predictions.
 
-# Configure the events
+It is designed to distribute the winnings from a bet among participants based on both how accurate their predictions were and how much they bet. The goal is to ensure that participants who made more accurate predictions and bet more confidently are rewarded fairly, while others may owe beers or money.
+
+
+# First, define the events
 
 Edit `config.yaml`
 
 <img width="332" alt="image" src="https://github.com/user-attachments/assets/1d871268-5807-4af0-9680-d0c778a299d6">
 
 
-# Add the bets
+# Second, make people bet
 run `python letsbet.py` 
 You can choose as unit of bets money or beers. Here is money.
 
 <img width="391" alt="image" src="https://github.com/user-attachments/assets/25a4c68d-6490-4166-9439-60b5cc7e334d">
 
 
-# Result computation
+# Finally, compute results
 
 Just run `python compute_payouts.py` and add the correct final values to let the program compute how won or lost
 
@@ -32,37 +35,80 @@ And setting the bet
 
 
 # Explanation of the Algorithm
-## Input Data
 
-Each participant places a bet and makes predictions for the outcomes of each events.
-The actual outcomes of the events are provided later, after the predictions are made.
-Participants also choose whether their bets are in money or beers.
+## Collect Bets and Predictions
+Each participant makes a prediction about the outcomes of some events and places a bet, either in beers or money.
 
-## Calculate Differences
+## Calculate the Accuracy of Predictions
+After the actual results of the events are known, the algorithm calculates how far off each participant’s predictions were from the actual results.
+For each participant, it sums up the differences between their predictions and the actual results.
 
-For each participant, the algorithm calculates how far their predictions are from the actual outcomes. This is done by adding up the differences between their guesses and the actual results.
+## Determine Weighted Scores
+The algorithm divides each participant’s total difference by the amount they bet. This gives a "weighted score" that reflects both the accuracy of their predictions and their confidence (how much they bet).
+Lower weighted scores are better, meaning the participant was both accurate and confident.
 
-## Determine Payouts
+## Distribute the Winnings
 
-The more accurate a participant's predictions, the higher their share of the total betting pool. If someone guesses perfectly, they get the entire pool.
-Each participant's share is calculated based on how small their prediction error is compared to others.
-Calculate Gains and Losses:
+The total pool (of beers or money) is divided among the participants based on their weighted scores. Participants with better (lower) scores get a larger share of the pool.
 
-After determining each participant's share of the pool, the algorithm calculates whether they gained or lost money (or beers) compared to their original bet.
+## Calculate Net Gain or Loss
+For each participant, the algorithm calculates whether they gained or lost compared to what they originally bet.
+Participants with a positive net gain will receive beers or money, while those with a negative net gain will owe beers or money.
 
 ## Settle Debts
-
-If some participants lost and others gained, the algorithm figures out who should pay whom to balance everything out. It creates a list of instructions for settling these debts.
+Finally, the algorithm figures out who should pay whom. It ensures that everyone pays or receives the correct amount, rounding down to whole beers to avoid fractional payments.
+If there are any remaining unpaid or unreceived beers, the algorithm tracks them separately.
 
 # Example
+- First event: How many meteors will be seen?
+- Second event: How many will explode?
 
-- Participants: Alice and Bob.
-- Predictions: Alice predicts 50 for the first event and 30 for the second. Bob predicts 60 and 20.
-- Bets: Alice bets 10 beers, Bob bets 5 beers.
-- Actual Results: The actual outcomes are 55 and 25.
+## Bets
+- Miriam
+  - Predicted 234 and 22. Bets 5 beers
+- Duncan
+  - Predicted 554 and 432. Bets 5 beers
+- Dominik
+  - Predicted 900 and 233. Bets 8 beers
 
-Step-by-Step:
-- Calculate Differences: Alice is off by a total of 10, and Bob is off by a total of 10 as well.
-- Determine Payouts: Since both have equal errors, they split the pool. Alice gets 7.5 beers, and Bob gets 7.5 beers.
-- Gains/Losses: Alice gains 7.5 - 10 = -2.5 beers (loss), Bob gains 7.5 - 5 = +2.5 beers (gain).
-- Settle Debts: Alice should give Bob 2.5 beers to balance everything out.
+Total Pool: 18 beers
+
+## Predictions vs. Actual
+
+- Miriam: Predicted 234 seen, 22 exploded; Actual real value: 1500 seen, 200 exploded
+  - Difference: 1978 total
+  - Weighted Score: 1978 / 5 = 395.6
+- Duncan: Predicted 554 seen, 432 exploded; Actual real value: 1500 seen, 200 exploded
+  - Difference: 1778 total
+  - Weighted Score: 1778 / 5 = 355.6
+- Dominik: Predicted 900 seen, 233 exploded; Actual real value: 1500 seen, 200 exploded
+  - Difference: 600 total
+  - Weighted Score: 600 / 8 = 75
+
+## Inverse Weighted Scores
+
+- Miriam: 1 / 395.6 ≈ 0.0025
+- Duncan: 1 / 355.6 ≈ 0.0028
+- Dominik: 1 / 75 ≈ 0.0133
+
+Total Inverse Weighted Score: 0.0025 + 0.0028 + 0.0133 ≈ 0.0186
+
+## Payout Distribution
+
+- Dominik: (0.0133 / 0.0186) * 18 ≈ 12.87 beers (rounded down to 12)
+- Duncan: (0.0028 / 0.0186) * 18 ≈ 2.71 beers (rounded down to 2)
+- Miriam: (0.0025 / 0.0186) * 18 ≈ 2.42 beers (rounded down to 2)
+
+## Net Gain/Loss
+
+- Dominik: Receives 12 beers, net gain of 4 beers.
+- Duncan: Owes 3 beers (5 - 2).
+- Miriam: Owes 3 beers (5 - 2).
+
+## Settlement
+
+- Dominik receives 2 beers from Miriam and 2 beers from Duncan.
+
+
+
+
