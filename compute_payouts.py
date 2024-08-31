@@ -16,8 +16,8 @@ def load_bets(filename='bets.tsv'):
         for row in reader:
             bet = {}
             for key, value in row.items():
-                if key == 'name':
-                    bet[key] = value
+                if key == 'name' or key == 'unit':
+                    bet[key] = value  # Keep 'name' and 'unit' as strings
                 elif key == 'total_bet':
                     bet[key] = float(value)  # Keep total_bet as float
                 else:
@@ -49,7 +49,7 @@ def calculate_payouts(bets, actual_results):
 
     return payouts
 
-def settle_debts(bets, payouts):
+def settle_debts(bets, payouts, unit):
     creditors = []
     debtors = []
 
@@ -72,15 +72,24 @@ def settle_debts(bets, payouts):
         debtor_name, debtor_amount = debtors.pop(0)
 
         if creditor_amount > debtor_amount:
-            payments.append(f"{debtor_name} should pay {creditor_name} ${debtor_amount:.2f}")
+            payment_amount = debtor_amount
+            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(payment_amount, unit)}")
             creditors.insert(0, (creditor_name, creditor_amount - debtor_amount))
         elif debtor_amount > creditor_amount:
-            payments.append(f"{debtor_name} should pay {creditor_name} ${creditor_amount:.2f}")
+            payment_amount = creditor_amount
+            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(payment_amount, unit)}")
             debtors.insert(0, (debtor_name, debtor_amount - creditor_amount))
         else:
-            payments.append(f"{debtor_name} should pay {creditor_name} ${debtor_amount:.2f}")
+            payment_amount = debtor_amount
+            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(payment_amount, unit)}")
 
     return payments
+
+def format_payment(amount, unit):
+    if unit == "beers":
+        return "🍺" * int(amount)
+    else:
+        return f"${amount:.2f}"
 
 if __name__ == "__main__":
     console = Console()
@@ -90,6 +99,10 @@ if __name__ == "__main__":
 
     # Load bets
     bets = load_bets()
+
+    # Load the unit choice
+    with open('unit_choice.txt', 'r') as file:
+        unit = file.read().strip()
 
     # Get actual results
     actual_results = {}
@@ -113,17 +126,19 @@ if __name__ == "__main__":
         final_payout = payouts.get(name, 0)
         net_gain_loss = final_payout - original_bet
 
-        if net_gain_loss >= 0:
-            net_gain_loss_str = f"+${net_gain_loss:.2f}"
+        if unit == "beers":
+            net_gain_loss_str = "🍺" * int(net_gain_loss) if net_gain_loss >= 0 else "-" + "🍺" * int(abs(net_gain_loss))
+            original_bet_str = "🍺" * int(original_bet)
         else:
-            net_gain_loss_str = f"-${abs(net_gain_loss):.2f}"
+            net_gain_loss_str = f"+${net_gain_loss:.2f}" if net_gain_loss >= 0 else f"-${abs(net_gain_loss):.2f}"
+            original_bet_str = f"${original_bet:.2f}"
 
-        table.add_row(name, f"${original_bet:.2f}", net_gain_loss_str)
+        table.add_row(name, original_bet_str, net_gain_loss_str)
 
     console.print(table)
 
     # Settle debts
-    payments = settle_debts(bets, payouts)
+    payments = settle_debts(bets, payouts, unit)
 
     # Print settlement instructions in a styled format
     console.print("\n[bold underline]Settlement Instructions:[/bold underline]", style="blue")
