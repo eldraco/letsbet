@@ -32,52 +32,37 @@ And setting the bet
 
 
 # Explanation of the Algorithm
+## Input Data
 
-- **Objective**: Determine the payout distribution among participants based on the accuracy of their predictions and the amounts they bet.
+Each participant places a bet and makes predictions for the outcomes of each events.
+The actual outcomes of the events are provided later, after the predictions are made.
+Participants also choose whether their bets are in money or beers.
 
-#### 1. **Input Data**
-   - Each participant provides:
-     - A **bet amount** $\( B_i \)$.
-     - Predictions for the outcomes of two events.
-   - The actual outcomes of the events are given.
+## Calculate Differences
 
-#### 2. **Calculate Total Difference** $\( D_i \)$
-   - For each participant $\( i \)$:
-     $\[
-     D_i = \sum_{j=1}^{n} \left| \text{Prediction}_{ij} - \text{Actual Outcome}_j \right|
-     \]$
-     - $\( D_i \)$ is the sum of the absolute differences between each participant's predictions and the actual outcomes across all events.
+For each participant, the algorithm calculates how far their predictions are from the actual outcomes. This is done by adding up the differences between their guesses and the actual results.
 
-#### 3. **Calculate Inverse Difference** $\( I_i \)$
-   - Compute the inverse difference for each participant:
-     \[$I_i = \frac{1}{D_i}$ \quad \text{(if $\( D_i \)$ is not zero)}\]
+## Determine Payouts
 
-     - If $\( D_i = 0 \)$ (perfect prediction), assign $\( I_i = \infty \)$ (this participant should receive the entire pool).
+The more accurate a participant's predictions, the higher their share of the total betting pool. If someone guesses perfectly, they get the entire pool.
+Each participant's share is calculated based on how small their prediction error is compared to others.
+Calculate Gains and Losses:
 
-#### 4. **Compute Total Inverse Score**
-   - Sum the inverse differences of all participants:
-     $\[
-     T_I = \sum_{i=1}^{m} I_i
-     \]$
-     - $\( T_I \)$ represents the total of all inverse differences.
+After determining each participant's share of the pool, the algorithm calculates whether they gained or lost money (or beers) compared to their original bet.
 
-#### 5. **Determine Payouts** $\( P_i \)$
-   - For each participant:
-     $\[
-     P_i = \frac{I_i}{T_I} \times \text{Total Pool}
-     \]$
-     - Each participant's payout $\( P_i \)$ is proportional to their inverse difference relative to the total.
+## Settle Debts
 
-#### 6. **Calculate Net Gain/Loss** $\( G_i \)$
-   - Determine how much each participant gained or lost:
-     $\[
-     G_i = P_i - B_i
-     \]$
-     - $\( G_i \)$ represents the net gain (if positive) or loss (if negative).
+If some participants lost and others gained, the algorithm figures out who should pay whom to balance everything out. It creates a list of instructions for settling these debts.
 
-#### 7. **Settle Debts**
-   - Identify **creditors** (participants with $\( G_i > 0 \)$) and **debtors** (participants with $\( G_i < 0 \)$).
-   - Debtors should pay creditors until all debts are settled:
-     - Match payments between debtors and creditors based on the amounts owed.
+# Example
 
-This algorithm ensures a fair distribution of the betting pool based on prediction accuracy and helps settle any outstanding balances between participants.
+- Participants: Alice and Bob.
+- Predictions: Alice predicts 50 for the first event and 30 for the second. Bob predicts 60 and 20.
+- Bets: Alice bets 10 beers, Bob bets 5 beers.
+- Actual Results: The actual outcomes are 55 and 25.
+
+Step-by-Step:
+- Calculate Differences: Alice is off by a total of 10, and Bob is off by a total of 10 as well.
+- Determine Payouts: Since both have equal errors, they split the pool. Alice gets 7.5 beers, and Bob gets 7.5 beers.
+- Gains/Losses: Alice gains 7.5 - 10 = -2.5 beers (loss), Bob gains 7.5 - 5 = +2.5 beers (gain).
+- Settle Debts: Alice should give Bob 2.5 beers to balance everything out.
