@@ -10,6 +10,7 @@ Edit `config.yaml`
 
 # Add the bets
 run `python letsbet.py` 
+You can choose as unit of bets money or beers. Here is money.
 
 <img width="391" alt="image" src="https://github.com/user-attachments/assets/25a4c68d-6490-4166-9439-60b5cc7e334d">
 
@@ -19,6 +20,16 @@ run `python letsbet.py`
 Just run `python compute_payouts.py` and add the correct final values to let the program compute how won or lost
 
 <img width="411" alt="image" src="https://github.com/user-attachments/assets/060ec535-1c2e-46b1-9b6b-628912e54343">
+
+# Example betting beers
+
+<img width="470" alt="image" src="https://github.com/user-attachments/assets/f0eacc7c-69bf-4488-9966-07b8c884635c">
+
+And setting the bet
+
+<img width="1250" alt="image" src="https://github.com/user-attachments/assets/a236130d-ddde-447b-a21a-259c8eaec641">
+
+
 
 # Explanation of the Algorithm
 
