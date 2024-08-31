@@ -1,5 +1,6 @@
 import yaml
 import csv
+from math import floor
 from rich.console import Console
 from rich.table import Table
 
@@ -12,7 +13,7 @@ def load_bets(filename='bets.tsv'):
     bets = []
     with open(filename, 'r') as file:
         reader = csv.DictReader(file, delimiter='\t')
-        for row in reader:
+        for row in reader:  # Corrected line, removed the extra closing parenthesis
             bet = {}
             for key, value in row.items():
                 if key == 'name' or key == 'unit':
@@ -63,23 +64,38 @@ def settle_debts(bets, payouts, unit):
         elif net_gain_loss < 0:
             debtors.append((name, -net_gain_loss))
 
-    # Match payments to cancel out debts
     payments = []
+    
+    # Match payments to cancel out debts
     while creditors and debtors:
         creditor_name, creditor_amount = creditors.pop(0)
         debtor_name, debtor_amount = debtors.pop(0)
 
-        if creditor_amount > debtor_amount:
-            payment_amount = debtor_amount
-            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(payment_amount, unit)}")
-            creditors.insert(0, (creditor_name, creditor_amount - debtor_amount))
-        elif debtor_amount > creditor_amount:
-            payment_amount = creditor_amount
-            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(payment_amount, unit)}")
-            debtors.insert(0, (debtor_name, debtor_amount - creditor_amount))
+        # Use floor to calculate the number of beers (ignore fractions)
+        creditor_beers = floor(creditor_amount)
+        debtor_beers = floor(debtor_amount)
+
+        if creditor_beers > debtor_beers:
+            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(debtor_beers, unit)}")
+            creditors.insert(0, (creditor_name, creditor_amount - debtor_beers))
+        elif debtor_beers > creditor_beers:
+            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(creditor_beers, unit)}")
+            debtors.insert(0, (debtor_name, debtor_amount - creditor_beers))
         else:
-            payment_amount = debtor_amount
-            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(payment_amount, unit)}")
+            payments.append(f"{debtor_name} should pay {creditor_name} {format_payment(debtor_beers, unit)}")
+
+    # If there are remaining fractional beers that were not fully paid, process them
+    while creditors:
+        creditor_name, creditor_amount = creditors.pop(0)
+        remaining_beers = floor(creditor_amount)
+        if remaining_beers > 0:
+            payments.append(f"{creditor_name} is still owed {format_payment(remaining_beers, unit)}")
+    
+    while debtors:
+        debtor_name, debtor_amount = debtors.pop(0)
+        remaining_beers = floor(debtor_amount)
+        if remaining_beers > 0:
+            payments.append(f"{debtor_name} still owes {format_payment(remaining_beers, unit)}")
 
     return payments
 
@@ -108,14 +124,33 @@ if __name__ == "__main__":
         event_name = event['name']
         actual_results[event_name] = int(input(f"Enter the actual result for {event_name}: "))
 
+    # Print the original bets and predictions
+    table_bets = Table(title="Original Bets and Predictions", show_header=True, header_style="bold blue")
+    table_bets.add_column("Participant", justify="left", style="cyan", no_wrap=True)
+    for event in events:
+        table_bets.add_column(f"Prediction: {event['name']}", justify="right", style="magenta")
+    table_bets.add_column("Total Bet", justify="right", style="green")
+
+    for bet in bets:
+        row = [bet['name']]
+        for event in events:
+            row.append(str(bet[event['name']]))
+        if unit == "beers":
+            row.append("🍺" * int(bet['total_bet']))
+        else:
+            row.append(f"${bet['total_bet']:.2f}")
+        table_bets.add_row(*row)
+
+    console.print(table_bets)
+
     # Calculate payouts
     payouts = calculate_payouts(bets, actual_results)
 
     # Create a pretty table for results
-    table = Table(title="Betting Results", show_header=True, header_style="bold magenta")
-    table.add_column("Participant", justify="left", style="cyan", no_wrap=True)
-    table.add_column("Original Bet", justify="right", style="green")
-    table.add_column("Net Gain/Loss", justify="right", style="red")
+    table_payouts = Table(title="Betting Results", show_header=True, header_style="bold magenta")
+    table_payouts.add_column("Participant", justify="left", style="cyan", no_wrap=True)
+    table_payouts.add_column("Original Bet", justify="right", style="green")
+    table_payouts.add_column("Net Gain/Loss", justify="right", style="red")
 
     # Populate the table with participant data
     for bet in bets:
@@ -131,9 +166,9 @@ if __name__ == "__main__":
             net_gain_loss_str = f"+${net_gain_loss:.2f}" if net_gain_loss >= 0 else f"-${abs(net_gain_loss):.2f}"
             original_bet_str = f"${original_bet:.2f}"
 
-        table.add_row(name, original_bet_str, net_gain_loss_str)
+        table_payouts.add_row(name, original_bet_str, net_gain_loss_str)
 
-    console.print(table)
+    console.print(table_payouts)
 
     # Settle debts
     payments = settle_debts(bets, payouts, unit)
